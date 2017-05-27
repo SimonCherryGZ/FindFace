@@ -128,9 +128,10 @@ public class MainActivity extends AppCompatActivity {
                 .filter(new Predicate<String>() {
                     @Override
                     public boolean test(@NonNull String s) throws Exception {
-                        Bitmap bitmap = BitmapFactory.decodeFile(s);
+                        //Bitmap bitmap = BitmapFactory.decodeFile(s);
+                        Bitmap bitmap = getEvenWidthBitmap(s);
                         if (bitmap != null) {
-                            bitmap = bitmap.copy(Bitmap.Config.RGB_565, true);
+                            //bitmap = bitmap.copy(Bitmap.Config.RGB_565, true);
                             FaceDetector.Face[] faces = new FaceDetector.Face[1];
                             FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
                             int count = faceDetector.findFaces(bitmap, faces);
@@ -145,24 +146,6 @@ public class MainActivity extends AppCompatActivity {
                         return false;
                     }
                 })
-//                .map(new Function<String, String>() {
-//                    @Override
-//                    public String apply(@NonNull String s) throws Exception {
-//                        //Bitmap bitmap = BitmapFactory.decodeFile(s);
-//                        Bitmap bitmap = getEvenWidthBitmap(s);
-//                        if (bitmap != null) {
-//                            FaceDetector.Face[] faces = new FaceDetector.Face[1];
-//                            FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
-//                            int count = faceDetector.findFaces(bitmap, faces);
-//                            bitmap.recycle();
-//                            bitmap = null;
-//                            if (count > 0) {
-//                                return s + " - has face";
-//                            }
-//                        }
-//                        return s + " - no face";
-//                    }
-//                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<String>() {
