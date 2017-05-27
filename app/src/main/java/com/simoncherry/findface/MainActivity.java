@@ -4,11 +4,9 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.FaceDetector;
-import android.os.Handler;
-import android.os.Looper;
+import android.os.Bundle;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -23,13 +21,9 @@ import org.reactivestreams.Subscription;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.reactivex.BackpressureStrategy;
 import io.reactivex.Flowable;
-import io.reactivex.FlowableEmitter;
-import io.reactivex.FlowableOnSubscribe;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
-import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 
@@ -48,6 +42,8 @@ public class MainActivity extends AppCompatActivity {
     private List<String> mData = new ArrayList<>();
     private MediaLoaderCallback mediaLoaderCallback;
 
+    private Subscription mSubscription = null;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +57,14 @@ public class MainActivity extends AppCompatActivity {
 
         initView();
         //loadLocalImage();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mSubscription != null) {
+            mSubscription.cancel();
+        }
     }
 
     private void initView() {
@@ -133,41 +137,47 @@ public class MainActivity extends AppCompatActivity {
                             bitmap.recycle();
                             bitmap = null;
                             if (count > 0) {
+                                Log.e(TAG, s + " - has face");
                                 return true;
                             }
                         }
+                        Log.e(TAG, s + " - no face");
                         return false;
                     }
                 })
-                .map(new Function<String, String>() {
-                    @Override
-                    public String apply(@NonNull String s) throws Exception {
-                        //Bitmap bitmap = BitmapFactory.decodeFile(s);
-                        Bitmap bitmap = getEvenWidthBitmap(s);
-                        if (bitmap != null) {
-                            FaceDetector.Face[] faces = new FaceDetector.Face[1];
-                            FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
-                            int count = faceDetector.findFaces(bitmap, faces);
-                            bitmap.recycle();
-                            bitmap = null;
-                            if (count > 0) {
-                                return s + "- has face";
-                            }
-                        }
-                        return s + "- no face";
-                    }
-                })
+//                .map(new Function<String, String>() {
+//                    @Override
+//                    public String apply(@NonNull String s) throws Exception {
+//                        //Bitmap bitmap = BitmapFactory.decodeFile(s);
+//                        Bitmap bitmap = getEvenWidthBitmap(s);
+//                        if (bitmap != null) {
+//                            FaceDetector.Face[] faces = new FaceDetector.Face[1];
+//                            FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
+//                            int count = faceDetector.findFaces(bitmap, faces);
+//                            bitmap.recycle();
+//                            bitmap = null;
+//                            if (count > 0) {
+//                                return s + " - has face";
+//                            }
+//                        }
+//                        return s + " - no face";
+//                    }
+//                })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Subscriber<String>() {
                     @Override
                     public void onSubscribe(Subscription s) {
                         Log.e(TAG, "onSubscribe");
+                        mSubscription = s;
+                        mSubscription.request(Long.MAX_VALUE);
                     }
 
                     @Override
                     public void onNext(String s) {
                         Log.e(TAG, s);
+                        mData.add(s);
+                        mGalleryAdapter.notifyItemChanged(mData.size()-1);
                     }
 
                     @Override
