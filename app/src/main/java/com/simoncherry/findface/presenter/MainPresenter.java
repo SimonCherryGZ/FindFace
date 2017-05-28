@@ -1,5 +1,6 @@
 package com.simoncherry.findface.presenter;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -12,6 +13,7 @@ import com.simoncherry.findface.contract.MainContract;
 import com.simoncherry.findface.model.ImageBean;
 import com.simoncherry.findface.model.SkipBean;
 import com.simoncherry.findface.util.BitmapUtils;
+import com.simoncherry.findface.util.ViewUtils;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -34,9 +36,11 @@ import io.realm.RealmList;
 public class MainPresenter implements MainContract.Presenter{
     private final static String TAG = MainPresenter.class.getSimpleName();
 
+    private Context mContext;
     private MainContract.View mView;
 
-    public MainPresenter(MainContract.View mView) {
+    public MainPresenter(Context mContext, MainContract.View mView) {
+        this.mContext = mContext;
         this.mView = mView;
     }
 
@@ -136,7 +140,9 @@ public class MainPresenter implements MainContract.Presenter{
                     @Override
                     public boolean test(@NonNull final ImageBean imageBean) throws Exception {
                         String path = imageBean.getPath();
-                        Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(path);
+                        //Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(path);
+                        int screenWidth = ViewUtils.getScreenWidth(mContext);
+                        Bitmap bitmap = BitmapUtils.getRequireWidthBitmap(BitmapUtils.getEvenWidthBitmap(path), screenWidth);
                         if (bitmap != null) {
                             FaceDetector.Face[] faces = new FaceDetector.Face[1];
                             FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
@@ -203,7 +209,9 @@ public class MainPresenter implements MainContract.Presenter{
                 .map(new Function<String, Bitmap>() {
                     @Override
                     public Bitmap apply(@NonNull String s) throws Exception {
-                        Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(s);
+                        //Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(s);
+                        int screenWidth = ViewUtils.getScreenWidth(mContext);
+                        Bitmap bitmap = BitmapUtils.getRequireWidthBitmap(BitmapUtils.getEvenWidthBitmap(s), screenWidth);
                         if (bitmap != null) {
                             FaceDetector.Face[] faces = new FaceDetector.Face[1];
                             FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
@@ -246,6 +254,7 @@ public class MainPresenter implements MainContract.Presenter{
 
                     @Override
                     public void onError(Throwable t) {
+                        Log.e(TAG, "Rx Exception: " + t.toString());
                         mView.onError("Rx Exception: " + t.toString());
                     }
 

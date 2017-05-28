@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mUnbinder = ButterKnife.bind(this);
         mContext = MainActivity.this;
         realm = Realm.getDefaultInstance();
-        mPresenter = new MainPresenter(this);
+        mPresenter = new MainPresenter(this, this);
 
         initView();
         initRealm();
