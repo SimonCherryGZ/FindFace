@@ -45,4 +45,18 @@ public class ImageBean extends RealmObject {
     public void setDate(long date) {
         this.date = date;
     }
+
+    public boolean isNotNull() {
+        return path != null && name != null;
+    }
+
+    @Override
+    public String toString() {
+        return "ImageBean{" +
+                "id=" + id +
+                ", path='" + path + '\'' +
+                ", name='" + name + '\'' +
+                ", date=" + date +
+                '}';
+    }
 }

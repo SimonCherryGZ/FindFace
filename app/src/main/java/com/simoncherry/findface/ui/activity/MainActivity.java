@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -17,7 +18,7 @@ import com.simoncherry.findface.contract.MainContract;
 import com.simoncherry.findface.model.ImageBean;
 import com.simoncherry.findface.presenter.MainPresenter;
 import com.simoncherry.findface.ui.adapter.GalleryAdapter;
-import com.simoncherry.findface.ui.adapter.RealmImageAdapter;
+import com.simoncherry.findface.ui.adapter.ImageAdapter;
 import com.simoncherry.findface.ui.custom.CustomBottomSheet;
 
 import org.reactivestreams.Subscription;
@@ -47,10 +48,11 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     TextView mTvHint;
 
     private GalleryAdapter mGalleryAdapter;
-    private RealmImageAdapter mImageAdapter;
+    private ImageAdapter mImageAdapter;
     private CustomBottomSheet mBottomSheetDialog;
 
     private List<String> mData = new ArrayList<>();
+    private List<ImageBean> mImages = new ArrayList<>();
     private MediaLoaderCallback mediaLoaderCallback;
 
     private Subscription mSubscription = null;
@@ -67,8 +69,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mContext = MainActivity.this;
         mPresenter = new MainPresenter(this);
 
-        initRealm();
         initView();
+        initRealm();
     }
 
     @Override
@@ -77,6 +79,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         if (mSubscription != null) {
             mSubscription.cancel();
         }
+        mRecyclerView.setAdapter(null);
         realmResults.removeAllChangeListeners();
         realm.close();
         mUnbinder.unbind();
@@ -89,7 +92,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             @Override
             public void onChange(RealmResults<ImageBean> results) {
                 if (results.size() > 0) {
-                    mImageAdapter.notifyDataSetChanged();
+                    Log.e(TAG, "results size: " + results.size());
+                    mImages.clear();
+                    mImages.addAll(results.subList(0, results.size()));
+                    if (mImageAdapter != null) {
+                        mImageAdapter.notifyDataSetChanged();
+                        Log.e(TAG, "getItemCount: " + mImageAdapter.getItemCount());
+                    }
                 }
             }
         });
@@ -99,7 +108,9 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mBtnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                loadLocalImage();
+                if (mSubscription == null) {
+                    loadLocalImage();
+                }
             }
         });
 
@@ -118,8 +129,8 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }
         });
 
-        mImageAdapter = new RealmImageAdapter(realmResults, true);
-        mImageAdapter.setOnItemClickListener(new RealmImageAdapter.OnItemClickListener() {
+        mImageAdapter = new ImageAdapter(mContext, mImages);
+        mImageAdapter.setOnItemClickListener(new ImageAdapter.OnItemClickListener() {
             @Override
             public void onItemClick(String url) {
                 Toast.makeText(mContext, url, Toast.LENGTH_SHORT).show();
@@ -130,8 +141,10 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 .inflate(R.layout.layout_bottom_sheet, null);
         mTvHint = (TextView) sheetView.findViewById(R.id.tv_hint);
         mRecyclerView = (RecyclerView) sheetView.findViewById(R.id.rv_gallery);
-        mRecyclerView.setAdapter(mGalleryAdapter);
-        //mRecyclerView.setAdapter(mImageAdapter);
+
+        //mRecyclerView.setAdapter(mGalleryAdapter);
+        mRecyclerView.setAdapter(mImageAdapter);
+
         mRecyclerView.setLayoutManager(new GridLayoutManager(mContext, 3));
 
         mBottomSheetDialog = new CustomBottomSheet(mContext);
@@ -154,6 +167,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             @Override
             public void onLoadFinished(RealmList<ImageBean> data) {
                 Toast.makeText(mContext, "Total Size: " + data.size(), Toast.LENGTH_SHORT).show();
+                mPresenter.startFaceScanTask(data);
             }
         });
         getSupportLoaderManager().initLoader(0, null, mediaLoaderCallback);
@@ -169,6 +183,16 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     public void onImageHasFace(String path) {
         mData.add(path);
         mGalleryAdapter.notifyItemChanged(mData.size()-1);
+    }
+
+    @Override
+    public void onImageHasFace(final ImageBean imageBean) {
+        realm.executeTransaction(new Realm.Transaction() {
+            @Override
+            public void execute(Realm realm) {
+                realm.copyToRealmOrUpdate(imageBean);
+            }
+        });
     }
 
     @Override

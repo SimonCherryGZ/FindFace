@@ -84,8 +84,8 @@ public class MediaLoaderCallback implements LoaderManager.LoaderCallbacks<Cursor
                 } while (data.moveToNext());
 
                 if (onLoadFinishedListener != null) {
-                    onLoadFinishedListener.onLoadFinished(pathList);
-                    //onLoadFinishedListener.onLoadFinished(realmList);
+                    //onLoadFinishedListener.onLoadFinished(pathList);
+                    onLoadFinishedListener.onLoadFinished(realmList);
                 }
             }
         }

@@ -18,6 +18,7 @@ import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
+import io.realm.Realm;
 import io.realm.RealmList;
 
 /**
@@ -94,7 +95,67 @@ public class MainPresenter implements MainContract.Presenter{
 
     @Override
     public void startFaceScanTask(RealmList<ImageBean> data) {
+        Flowable.fromIterable(data)
+                .filter(new Predicate<ImageBean>() {
+                    @Override
+                    public boolean test(@NonNull ImageBean imageBean) throws Exception {
+                        return imageBean != null && imageBean.isNotNull();
+                    }
+                })
+                .filter(new Predicate<ImageBean>() {
+                    @Override
+                    public boolean test(@NonNull ImageBean imageBean) throws Exception {
+                        Realm realm = Realm.getDefaultInstance();
+                        return realm.where(ImageBean.class).equalTo("id", imageBean.getId()).findFirst() == null;
+                    }
+                })
+                .filter(new Predicate<ImageBean>() {
+                    @Override
+                    public boolean test(@NonNull ImageBean imageBean) throws Exception {
+                        String path = imageBean.getPath();
+                        Bitmap bitmap = getEvenWidthBitmap(path);
+                        if (bitmap != null) {
+                            FaceDetector.Face[] faces = new FaceDetector.Face[1];
+                            FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
+                            int count = faceDetector.findFaces(bitmap, faces);
+                            bitmap.recycle();
+                            bitmap = null;
+                            if (count > 0) {
+                                Log.e(TAG, path + " - has face");
+                                return true;
+                            }
+                        }
+                        Log.e(TAG, path + " - no face");
+                        return false;
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<ImageBean>() {
+                    @Override
+                    public void onSubscribe(Subscription s) {
+                        Log.e(TAG, "onSubscribe");
+                        mView.onSubscribe(s);
+                    }
 
+                    @Override
+                    public void onNext(ImageBean imageBean) {
+                        Log.e(TAG, imageBean.toString());
+                        mView.onImageHasFace(imageBean);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        Log.e(TAG, t.toString());
+                        mView.onError(t.toString());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.e(TAG, "onComplete");
+                        mView.onComplete();
+                    }
+                });
     }
 
     private Bitmap getEvenWidthBitmap(String imgUrl) {
