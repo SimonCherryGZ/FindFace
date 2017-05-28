@@ -22,6 +22,7 @@ import com.simoncherry.findface.presenter.MainPresenter;
 import com.simoncherry.findface.ui.adapter.GalleryAdapter;
 import com.simoncherry.findface.ui.adapter.ImageAdapter;
 import com.simoncherry.findface.ui.custom.CustomBottomSheet;
+import com.simoncherry.findface.util.CrazyClick;
 
 import org.reactivestreams.Subscription;
 
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     private List<String> mData = new ArrayList<>();
     private List<ImageBean> mImages = new ArrayList<>();
-    private MediaLoaderCallback mediaLoaderCallback;
+    private MediaLoaderCallback mediaLoaderCallback = null;
 
     private Subscription mSubscription = null;
 
@@ -111,7 +112,10 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mBtnTest.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (mSubscription == null) {
+                if (CrazyClick.isCrazy()) {
+                    return;
+                }
+                if (mediaLoaderCallback == null) {
                     loadLocalImage();
                 }
             }
