@@ -47,7 +47,7 @@ public class MediaLoaderCallback implements LoaderManager.LoaderCallbacks<Cursor
         CursorLoader cursorLoader = new CursorLoader(mContext,
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI, IMAGE_PROJECTION,
                 IMAGE_PROJECTION[4]+">0 AND "+IMAGE_PROJECTION[3]+"=? OR "+IMAGE_PROJECTION[3]+"=? ",
-                new String[]{"image/jpeg", "image/png"}, IMAGE_PROJECTION[2] + " DESC");
+                new String[]{"image/jpeg", "image/png"}, IMAGE_PROJECTION[2] + " ASC");  // DESC 降序
         return cursorLoader;
     }
 

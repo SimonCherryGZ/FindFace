@@ -1,6 +1,7 @@
 package com.simoncherry.findface.ui.activity;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
@@ -9,6 +10,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     @BindView(R.id.btn_test) Button mBtnTest;
     @BindView(R.id.btn_sheet) Button mBtnSheet;
+    @BindView(R.id.iv_result) ImageView mIvResult;
     RecyclerView mRecyclerView;
     TextView mTvHint;
 
@@ -132,8 +135,11 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         mImageAdapter = new ImageAdapter(mContext, mImages);
         mImageAdapter.setOnItemClickListener(new ImageAdapter.OnItemClickListener() {
             @Override
-            public void onItemClick(String url) {
-                Toast.makeText(mContext, url, Toast.LENGTH_SHORT).show();
+            public void onItemClick(String path) {
+                Toast.makeText(mContext, path, Toast.LENGTH_SHORT).show();
+                mBottomSheetDialog.dismiss();
+                mIvResult.setImageResource(R.mipmap.ic_launcher);
+                mPresenter.drawFaceArea(path);
             }
         });
 
@@ -196,23 +202,22 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
     @Override
-    public void onImageNoFace(final ImageBean imageBean) {
-        Log.e(TAG, "save SkipBean: " + imageBean.getId());
-//        realm.executeTransaction(new Realm.Transaction() {
-//            @Override
-//            public void execute(Realm realm) {
-//                SkipBean skipBean = new SkipBean(imageBean.getId(), imageBean.getPath(), imageBean.getName(), imageBean.getDate());
-//                realm.copyToRealmOrUpdate(skipBean);
-//            }
-//        });
-    }
-
-    @Override
     public void onError(String error) {
         Toast.makeText(mContext, "Rx Exception: " + error, Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onComplete() {
+        Log.e(TAG, "onComplete");
+    }
+
+    @Override
+    public void onDrawFaceArea(Bitmap bitmap) {
+        if (bitmap == null) {
+            mIvResult.setImageResource(R.mipmap.ic_launcher);
+            Toast.makeText(mContext, "无法读取图片，或没有检测到人脸", Toast.LENGTH_SHORT).show();
+        } else {
+            mIvResult.setImageBitmap(bitmap);
+        }
     }
 }

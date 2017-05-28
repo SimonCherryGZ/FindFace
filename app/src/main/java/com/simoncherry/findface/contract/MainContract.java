@@ -1,5 +1,7 @@
 package com.simoncherry.findface.contract;
 
+import android.graphics.Bitmap;
+
 import com.simoncherry.findface.model.ImageBean;
 
 import org.reactivestreams.Subscription;
@@ -17,13 +19,14 @@ public interface MainContract {
         void onSubscribe(Subscription subscription);
         void onImageHasFace(String path);
         void onImageHasFace(ImageBean imageBean);
-        void onImageNoFace(ImageBean imageBean);
         void onError(String error);
         void onComplete();
+        void onDrawFaceArea(Bitmap bitmap);
     }
 
     interface Presenter {
         void startFaceScanTask(final List<String> data);
         void startFaceScanTask(final RealmList<ImageBean> data);
+        void drawFaceArea(String path);
     }
 }

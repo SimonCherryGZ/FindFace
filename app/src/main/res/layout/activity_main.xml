@@ -17,11 +17,13 @@
         android:layout_centerHorizontal="true"
         android:text="TEST"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <ImageView
+        android:id="@+id/iv_result"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
         android:layout_centerInParent="true"
-        android:text="Hello World!\nHello World!\nHello World!\nHello World!\n" />
+        android:scaleType="fitCenter"
+        android:src="@mipmap/ic_launcher"/>
 
     <Button
         android:id="@+id/btn_sheet"

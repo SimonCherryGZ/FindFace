@@ -1,13 +1,17 @@
 package com.simoncherry.findface.presenter;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PointF;
 import android.media.FaceDetector;
 import android.util.Log;
 
-import com.simoncherry.findface.model.ImageBean;
 import com.simoncherry.findface.contract.MainContract;
+import com.simoncherry.findface.model.ImageBean;
 import com.simoncherry.findface.model.SkipBean;
+import com.simoncherry.findface.util.BitmapUtils;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -17,6 +21,7 @@ import java.util.List;
 import io.reactivex.Flowable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.functions.Function;
 import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 import io.realm.Realm;
@@ -30,7 +35,6 @@ public class MainPresenter implements MainContract.Presenter{
     private final static String TAG = MainPresenter.class.getSimpleName();
 
     private MainContract.View mView;
-    private Realm mRealm;
 
     public MainPresenter(MainContract.View mView) {
         this.mView = mView;
@@ -49,7 +53,7 @@ public class MainPresenter implements MainContract.Presenter{
                     @Override
                     public boolean test(@NonNull String s) throws Exception {
                         //Bitmap bitmap = BitmapFactory.decodeFile(s);
-                        Bitmap bitmap = getEvenWidthBitmap(s);
+                        Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(s);
                         if (bitmap != null) {
                             //bitmap = bitmap.copy(Bitmap.Config.RGB_565, true);
                             FaceDetector.Face[] faces = new FaceDetector.Face[1];
@@ -132,7 +136,7 @@ public class MainPresenter implements MainContract.Presenter{
                     @Override
                     public boolean test(@NonNull final ImageBean imageBean) throws Exception {
                         String path = imageBean.getPath();
-                        Bitmap bitmap = getEvenWidthBitmap(path);
+                        Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(path);
                         if (bitmap != null) {
                             FaceDetector.Face[] faces = new FaceDetector.Face[1];
                             FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
@@ -143,7 +147,6 @@ public class MainPresenter implements MainContract.Presenter{
                                 Log.e(TAG, path + " - has face");
                                 return true;
                             } else {
-                                mView.onImageNoFace(imageBean);
                                 Realm realm = Realm.getDefaultInstance();
                                 realm.executeTransaction(new Realm.Transaction() {
                                     @Override
@@ -177,7 +180,7 @@ public class MainPresenter implements MainContract.Presenter{
                     @Override
                     public void onError(Throwable t) {
                         Log.e(TAG, t.toString());
-                        mView.onError(t.toString());
+                        mView.onError("Rx Exception: " + t.toString());
                     }
 
                     @Override
@@ -188,22 +191,67 @@ public class MainPresenter implements MainContract.Presenter{
                 });
     }
 
-    private Bitmap getEvenWidthBitmap(String imgUrl) {
-        Bitmap srcImg = BitmapFactory.decodeFile(imgUrl);
-        Bitmap srcFace = srcImg.copy(Bitmap.Config.RGB_565, true);
-        srcImg = null;
-        int w = srcFace.getWidth();
-        int h = srcFace.getHeight();
-        if (w % 2 == 1) {
-            w++;
-            srcFace = Bitmap.createScaledBitmap(srcFace,
-                    srcFace.getWidth()+1, srcFace.getHeight(), false);
-        }
-        if (h % 2 == 1) {
-            h++;
-            srcFace = Bitmap.createScaledBitmap(srcFace,
-                    srcFace.getWidth(), srcFace.getHeight()+1, false);
-        }
-        return srcFace;
+    @Override
+    public void drawFaceArea(String path) {
+        Flowable.just(path)
+                .filter(new Predicate<String>() {
+                    @Override
+                    public boolean test(@NonNull String s) throws Exception {
+                        return s != null;
+                    }
+                })
+                .map(new Function<String, Bitmap>() {
+                    @Override
+                    public Bitmap apply(@NonNull String s) throws Exception {
+                        Bitmap bitmap = BitmapUtils.getEvenWidthBitmap(s);
+                        if (bitmap != null) {
+                            FaceDetector.Face[] faces = new FaceDetector.Face[1];
+                            FaceDetector faceDetector = new FaceDetector(bitmap.getWidth(), bitmap.getHeight(), 1);
+                            int count = faceDetector.findFaces(bitmap, faces);
+                            if (count > 0) {
+                                Canvas canvas = new Canvas(bitmap);
+                                Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                                mPaint.setColor(Color.YELLOW);
+                                mPaint.setStrokeWidth(5);
+                                mPaint.setStyle(Paint.Style.STROKE);
+
+                                canvas.drawBitmap(bitmap, 0, 0, mPaint);
+                                for (int i = 0; i < count; i++){
+                                    //双眼的中心点
+                                    PointF midPoint = new PointF();
+                                    faces[i].getMidPoint(midPoint);
+                                    //双眼的距离
+                                    float eyeDistance = faces[i].eyesDistance();
+                                    //画矩形
+                                    canvas.drawRect(midPoint.x - eyeDistance, midPoint.y - eyeDistance, midPoint.x + eyeDistance, midPoint.y + eyeDistance, mPaint);
+                                }
+                                return bitmap;
+                            }
+                        }
+                        return null;
+                    }
+                })
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Bitmap>() {
+                    @Override
+                    public void onSubscribe(Subscription s) {
+                        s.request(1);
+                    }
+
+                    @Override
+                    public void onNext(Bitmap bitmap) {
+                        mView.onDrawFaceArea(bitmap);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        mView.onError("Rx Exception: " + t.toString());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                    }
+                });
     }
 }
