@@ -8,7 +8,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.simoncherry.GlideApp;
+import com.bumptech.glide.Glide;
 import com.simoncherry.findface.R;
 import com.simoncherry.findface.model.ImageBean;
 
@@ -56,7 +56,7 @@ public class RealmImageAdapter extends RealmRecyclerViewAdapter<ImageBean, Realm
 //        } else {
 //            holder.ivImg.setImageResource(0);
 //        }
-        GlideApp.with(mContext).load(obj.getPath())
+        Glide.with(mContext).load(obj.getPath())
                 .placeholder(R.mipmap.ic_launcher)
                 .error(R.mipmap.ic_launcher)
                 .into(holder.ivImg);

@@ -67,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         setContentView(R.layout.activity_main);
         mUnbinder = ButterKnife.bind(this);
         mContext = MainActivity.this;
+        realm = Realm.getDefaultInstance();
         mPresenter = new MainPresenter(this);
 
         initView();
@@ -86,7 +87,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
     private void initRealm() {
-        realm = Realm.getDefaultInstance();
         realmResults = realm.where(ImageBean.class).findAllAsync();
         realmResults.addChangeListener(new RealmChangeListener<RealmResults<ImageBean>>() {
             @Override
@@ -196,8 +196,20 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
     }
 
     @Override
+    public void onImageNoFace(final ImageBean imageBean) {
+        Log.e(TAG, "save SkipBean: " + imageBean.getId());
+//        realm.executeTransaction(new Realm.Transaction() {
+//            @Override
+//            public void execute(Realm realm) {
+//                SkipBean skipBean = new SkipBean(imageBean.getId(), imageBean.getPath(), imageBean.getName(), imageBean.getDate());
+//                realm.copyToRealmOrUpdate(skipBean);
+//            }
+//        });
+    }
+
+    @Override
     public void onError(String error) {
-        Toast.makeText(mContext, error, Toast.LENGTH_SHORT).show();
+        Toast.makeText(mContext, "Rx Exception: " + error, Toast.LENGTH_SHORT).show();
     }
 
     @Override

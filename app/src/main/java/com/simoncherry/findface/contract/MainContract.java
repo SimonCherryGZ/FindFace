@@ -17,6 +17,7 @@ public interface MainContract {
         void onSubscribe(Subscription subscription);
         void onImageHasFace(String path);
         void onImageHasFace(ImageBean imageBean);
+        void onImageNoFace(ImageBean imageBean);
         void onError(String error);
         void onComplete();
     }

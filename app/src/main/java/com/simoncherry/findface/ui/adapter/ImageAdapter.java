@@ -7,7 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.simoncherry.GlideApp;
+import com.bumptech.glide.Glide;
 import com.simoncherry.findface.R;
 import com.simoncherry.findface.model.ImageBean;
 
@@ -47,7 +47,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.MyViewHolder
     public void onBindViewHolder(MyViewHolder holder, int position) {
         final ImageBean bean = mData.get(position);
         if (bean != null && bean.isNotNull()) {
-            GlideApp.with(mContext).load(bean.getPath())
+            Glide.with(mContext).load(bean.getPath())
                     .placeholder(R.mipmap.ic_launcher)
                     .error(R.mipmap.ic_launcher)
                     .into(holder.ivImg);

@@ -7,6 +7,7 @@ import android.util.Log;
 
 import com.simoncherry.findface.model.ImageBean;
 import com.simoncherry.findface.contract.MainContract;
+import com.simoncherry.findface.model.SkipBean;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -29,6 +30,7 @@ public class MainPresenter implements MainContract.Presenter{
     private final static String TAG = MainPresenter.class.getSimpleName();
 
     private MainContract.View mView;
+    private Realm mRealm;
 
     public MainPresenter(MainContract.View mView) {
         this.mView = mView;
@@ -102,16 +104,33 @@ public class MainPresenter implements MainContract.Presenter{
                         return imageBean != null && imageBean.isNotNull();
                     }
                 })
-                .filter(new Predicate<ImageBean>() {
+                .filter(new Predicate<ImageBean>() {  // 有人脸的表中不存在
                     @Override
                     public boolean test(@NonNull ImageBean imageBean) throws Exception {
                         Realm realm = Realm.getDefaultInstance();
-                        return realm.where(ImageBean.class).equalTo("id", imageBean.getId()).findFirst() == null;
+                        boolean isNotExist = realm.where(ImageBean.class).equalTo("id", imageBean.getId()).findFirst() == null;
+                        realm.close();
+                        if (!isNotExist) {
+                            Log.e(TAG, imageBean.getId() + " 此图片已检测过存在人脸，跳过");
+                        }
+                        return isNotExist;
+                    }
+                })
+                .filter(new Predicate<ImageBean>() {  // 没有人脸的表中不存在
+                    @Override
+                    public boolean test(@NonNull ImageBean imageBean) throws Exception {
+                        Realm realm = Realm.getDefaultInstance();
+                        boolean isNotExist = realm.where(SkipBean.class).equalTo("id", imageBean.getId()).findFirst() == null;
+                        realm.close();
+                        if (!isNotExist) {
+                            Log.e(TAG, imageBean.getId() + " 此图片已检测过不存在人脸，跳过");
+                        }
+                        return isNotExist;
                     }
                 })
                 .filter(new Predicate<ImageBean>() {
                     @Override
-                    public boolean test(@NonNull ImageBean imageBean) throws Exception {
+                    public boolean test(@NonNull final ImageBean imageBean) throws Exception {
                         String path = imageBean.getPath();
                         Bitmap bitmap = getEvenWidthBitmap(path);
                         if (bitmap != null) {
@@ -123,6 +142,17 @@ public class MainPresenter implements MainContract.Presenter{
                             if (count > 0) {
                                 Log.e(TAG, path + " - has face");
                                 return true;
+                            } else {
+                                mView.onImageNoFace(imageBean);
+                                Realm realm = Realm.getDefaultInstance();
+                                realm.executeTransaction(new Realm.Transaction() {
+                                    @Override
+                                    public void execute(Realm realm) {
+                                        SkipBean skipBean = new SkipBean(imageBean.getId(), imageBean.getPath(), imageBean.getName(), imageBean.getDate());
+                                        realm.copyToRealmOrUpdate(skipBean);
+                                    }
+                                });
+                                realm.close();
                             }
                         }
                         Log.e(TAG, path + " - no face");
