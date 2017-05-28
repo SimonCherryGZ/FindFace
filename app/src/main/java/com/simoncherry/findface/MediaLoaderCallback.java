@@ -9,9 +9,13 @@ import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.text.TextUtils;
 
+import com.simoncherry.findface.model.ImageBean;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.realm.RealmList;
 
 /**
  * <pre>
@@ -58,20 +62,30 @@ public class MediaLoaderCallback implements LoaderManager.LoaderCallbacks<Cursor
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         if (data != null) {
             if (data.getCount() > 0) {
-                List<String> images = new ArrayList<>();
+                List<String> pathList = new ArrayList<>();
+                RealmList<ImageBean> realmList = new RealmList<>();
                 data.moveToFirst();
                 do {
                     String path = data.getString(data.getColumnIndexOrThrow(IMAGE_PROJECTION[0]));
                     String name = data.getString(data.getColumnIndexOrThrow(IMAGE_PROJECTION[1]));
                     long dateTime = data.getLong(data.getColumnIndexOrThrow(IMAGE_PROJECTION[2]));
+                    long id = data.getLong(data.getColumnIndexOrThrow(IMAGE_PROJECTION[5]));
                     if (fileExist(path)) {
-                        images.add(path);
+                        pathList.add(path);
+
+                        ImageBean bean = new ImageBean();
+                        bean.setId(id);
+                        bean.setPath(path);
+                        bean.setName(name);
+                        bean.setDate(dateTime);
+                        realmList.add(bean);
                     }
 
                 } while (data.moveToNext());
 
                 if (onLoadFinishedListener != null) {
-                    onLoadFinishedListener.onLoadFinished(images);
+                    onLoadFinishedListener.onLoadFinished(pathList);
+                    //onLoadFinishedListener.onLoadFinished(realmList);
                 }
             }
         }
@@ -83,6 +97,7 @@ public class MediaLoaderCallback implements LoaderManager.LoaderCallbacks<Cursor
 
     public interface OnLoadFinishedListener {
         void onLoadFinished(List<String> data);
+        void onLoadFinished(RealmList<ImageBean> data);
     }
 
     private OnLoadFinishedListener onLoadFinishedListener;

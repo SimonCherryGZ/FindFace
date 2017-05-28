@@ -1,4 +1,4 @@
-package com.simoncherry.findface;
+package com.simoncherry.findface.ui.adapter;
 
 import android.content.Context;
 import android.support.v7.widget.RecyclerView;
@@ -8,6 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.bumptech.glide.Glide;
+import com.simoncherry.findface.R;
 
 import java.util.List;
 
