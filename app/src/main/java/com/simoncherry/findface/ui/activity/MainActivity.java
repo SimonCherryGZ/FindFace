@@ -22,12 +22,17 @@ import com.simoncherry.findface.presenter.MainPresenter;
 import com.simoncherry.findface.ui.adapter.GalleryAdapter;
 import com.simoncherry.findface.ui.adapter.ImageAdapter;
 import com.simoncherry.findface.ui.custom.CustomBottomSheet;
+import com.simoncherry.findface.util.BitmapUtils;
 import com.simoncherry.findface.util.CrazyClick;
+import com.simoncherry.findface.util.FileUtils;
+import com.simoncherry.findface.util.JNIUtils;
 
 import org.reactivestreams.Subscription;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -47,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
     @BindView(R.id.btn_test) Button mBtnTest;
     @BindView(R.id.btn_sheet) Button mBtnSheet;
+    @BindView(R.id.btn_jni) Button mBtnJNI;
     @BindView(R.id.iv_result) ImageView mIvResult;
     RecyclerView mRecyclerView;
     TextView mTvHint;
@@ -76,6 +82,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
         initView();
         initRealm();
+        initRawFile();
     }
 
     @Override
@@ -88,24 +95,6 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
         realmResults.removeAllChangeListeners();
         realm.close();
         mUnbinder.unbind();
-    }
-
-    private void initRealm() {
-        realmResults = realm.where(ImageBean.class).findAllAsync();
-        realmResults.addChangeListener(new RealmChangeListener<RealmResults<ImageBean>>() {
-            @Override
-            public void onChange(RealmResults<ImageBean> results) {
-                if (results.size() > 0) {
-                    Log.e(TAG, "results size: " + results.size());
-                    mImages.clear();
-                    mImages.addAll(results.subList(0, results.size()));
-                    if (mImageAdapter != null) {
-                        mImageAdapter.notifyDataSetChanged();
-                        Log.e(TAG, "getItemCount: " + mImageAdapter.getItemCount());
-                    }
-                }
-            }
-        });
     }
 
     private void initView() {
@@ -128,6 +117,13 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             }
         });
 
+        mBtnJNI.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                doGrayScale();
+            }
+        });
+
         mGalleryAdapter = new GalleryAdapter(mContext, mData);
         mGalleryAdapter.setOnItemClickListener(new GalleryAdapter.OnItemClickListener() {
             @Override
@@ -143,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
                 Toast.makeText(mContext, path, Toast.LENGTH_SHORT).show();
                 mBottomSheetDialog.dismiss();
                 mIvResult.setImageResource(R.mipmap.ic_launcher);
-                mPresenter.drawFaceArea(path);
+                mPresenter.drawFaceArea3(path);
             }
         });
 
@@ -159,6 +155,37 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
 
         mBottomSheetDialog = new CustomBottomSheet(mContext);
         mBottomSheetDialog.setContentView(sheetView);
+    }
+
+    private void initRealm() {
+        realmResults = realm.where(ImageBean.class).findAllAsync();
+        realmResults.addChangeListener(new RealmChangeListener<RealmResults<ImageBean>>() {
+            @Override
+            public void onChange(RealmResults<ImageBean> results) {
+                if (results.size() > 0) {
+                    Log.e(TAG, "results size: " + results.size());
+                    mImages.clear();
+                    mImages.addAll(results.subList(0, results.size()));
+                    if (mImageAdapter != null) {
+                        mImageAdapter.notifyDataSetChanged();
+                        Log.e(TAG, "getItemCount: " + mImageAdapter.getItemCount());
+                    }
+                }
+            }
+        });
+    }
+
+    private void initRawFile() {
+        File dstDir = getDir("file", Context.MODE_PRIVATE);
+        File myFile = new File(dstDir, "lbpcascade_frontalface.xml");
+        String path = myFile.getAbsolutePath();  // "/data/data/com.simoncherry.findface/app_file/lbpcascade_frontalface.xml"
+        Log.e(TAG, "raw file path: " + path);
+        if (!myFile.exists()) {
+            Log.e(TAG, "raw file not exist, copy it");
+            FileUtils.copyFileFromRawToOthers(mContext, R.raw.lbpcascade_frontalface, myFile.getAbsolutePath());
+        } else {
+            Log.e(TAG, "raw file exist");
+        }
     }
 
     private void showBottomSheet() {
@@ -177,10 +204,26 @@ public class MainActivity extends AppCompatActivity implements MainContract.View
             @Override
             public void onLoadFinished(RealmList<ImageBean> data) {
                 Toast.makeText(mContext, "Total Size: " + data.size(), Toast.LENGTH_SHORT).show();
-                mPresenter.startFaceScanTask(data);
+                mPresenter.startFaceScanTask3(data);
             }
         });
         getSupportLoaderManager().initLoader(0, null, mediaLoaderCallback);
+    }
+
+    private void doGrayScale() {
+        Bitmap bitmap = BitmapUtils.getViewBitmap(mIvResult);
+        int w = bitmap.getWidth(), h = bitmap.getHeight();
+        int[] pix = new int[w * h];
+        bitmap.getPixels(pix, 0, w, 0, 0, w, h);
+
+        int [] resultPixes = JNIUtils.doGrayScale(pix, w, h);
+        showProcessResult(resultPixes, w, h);
+    }
+
+    private void showProcessResult(int[] resultPixes, int w, int h) {
+        Bitmap result = Bitmap.createBitmap(w, h, Bitmap.Config.RGB_565);
+        result.setPixels(resultPixes, 0, w, 0, 0, w, h);
+        mIvResult.setImageBitmap(result);
     }
 
     @Override

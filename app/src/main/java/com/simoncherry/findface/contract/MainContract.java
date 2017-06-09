@@ -27,6 +27,10 @@ public interface MainContract {
     interface Presenter {
         void startFaceScanTask(final List<String> data);
         void startFaceScanTask(final RealmList<ImageBean> data);
+        void startFaceScanTask2(final RealmList<ImageBean> data);
+        void startFaceScanTask3(final RealmList<ImageBean> data);
         void drawFaceArea(String path);
+        void drawFaceArea2(String path);
+        void drawFaceArea3(String path);
     }
 }

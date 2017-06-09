@@ -2,6 +2,7 @@ package com.simoncherry.findface.util;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.view.View;
 
 /**
  * Created by Simon on 2017/5/28.
@@ -82,5 +83,13 @@ public class BitmapUtils {
                 return Bitmap.createScaledBitmap(bitmap, reqWidth, reqHeight, true);
             }
         }
+    }
+
+    public static Bitmap getViewBitmap(View view){
+        view.setDrawingCacheEnabled(true);
+        view.buildDrawingCache();
+        Bitmap bitmap = view.getDrawingCache().copy(Bitmap.Config.RGB_565, false);
+        view.setDrawingCacheEnabled(false);
+        return bitmap;
     }
 }
