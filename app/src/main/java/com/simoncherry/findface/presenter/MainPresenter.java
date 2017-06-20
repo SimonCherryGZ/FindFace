@@ -621,39 +621,7 @@ public class MainPresenter implements MainContract.Presenter{
     private void initDLibDetector() {
         final String targetPath = Constants.getFaceShapeModelPath();
         if (!new File(targetPath).exists()) {
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    Toast.makeText(mContext, "Copy landmark model to " + targetPath, Toast.LENGTH_SHORT).show();
-//                }
-//            });
-//            FileUtils.copyFileFromRawToOthers(mContext, R.raw.shape_predictor_68_face_landmarks, targetPath);
-            Observable.create(new ObservableOnSubscribe<String>() {
-                @Override
-                public void subscribe(@NonNull ObservableEmitter<String> e) throws Exception {
-                    e.onNext(targetPath);
-                    e.onComplete();
-                }
-            })
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(new Observer<String>() {
-                @Override
-                public void onSubscribe(@NonNull Disposable d) {
-                }
-                @Override
-                public void onNext(@NonNull String s) {
-                    Toast.makeText(mContext, "Copy landmark model to " + s, Toast.LENGTH_SHORT).show();
-                    FileUtils.copyFileFromRawToOthers(mContext, R.raw.shape_predictor_68_face_landmarks, s);
-                }
-                @Override
-                public void onError(@NonNull Throwable e) {
-                    Toast.makeText(mContext, e.toString(), Toast.LENGTH_SHORT).show();
-                }
-                @Override
-                public void onComplete() {
-                }
-            });
+            throw new RuntimeException("没有找到shape_predictor_68_face_landmarks.dat");
         }
         // Init
         if (mFaceDet == null) {
